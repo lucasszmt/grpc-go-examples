@@ -1,0 +1,31 @@
+syntax = "proto3";
+
+package calculator;
+
+option go_package = "calculator/gen/calculator";
+
+message Values {
+  float val_a = 1;
+  float val_b = 2;
+}
+
+message SumRequest {
+  Values values = 1;
+}
+
+message ResultResponse {
+  float response = 1;
+}
+
+message NRequest {
+  int32 number = 1;
+}
+
+message DecomposedNumber {
+  int32 number = 1;
+}
+
+service Calculator{
+  rpc Sum(SumRequest) returns (ResultResponse){}
+  rpc PrimeNumberDecomposition(NRequest) returns(stream DecomposedNumber){};
+}
