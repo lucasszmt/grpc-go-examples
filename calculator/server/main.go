@@ -5,6 +5,7 @@ import (
 	pb "github.com/lucasszmt/grpcTraining/calculator/gen/calculator"
 	"github.com/lucasszmt/grpcTraining/calculator/server/utils"
 	"google.golang.org/grpc"
+	"io"
 	"log"
 	"net"
 )
@@ -30,6 +31,25 @@ func (s *server) PrimeNumberDecomposition(req *pb.NRequest, stream pb.Calculator
 		}
 	}
 	return nil
+}
+
+func (s *server) ComputeAverage(stream pb.Calculator_ComputeAverageServer) error {
+	log.Println("Receiving Stream")
+	count, avg := 0, 0.
+	for {
+		val, err := stream.Recv()
+		if err == io.EOF {
+			avg = avg / float64(count)
+			log.Println("Sending: ", avg)
+			return stream.SendAndClose(&pb.NumberStream{Number: avg})
+		}
+		if err != nil {
+			return err
+		}
+		log.Println(val.Number)
+		count++
+		avg += val.Number
+	}
 }
 
 func main() {

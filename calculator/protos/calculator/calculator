@@ -25,7 +25,12 @@ message DecomposedNumber {
   int32 number = 1;
 }
 
+message NumberStream {
+  double number = 1;
+}
+
 service Calculator{
   rpc Sum(SumRequest) returns (ResultResponse){}
   rpc PrimeNumberDecomposition(NRequest) returns(stream DecomposedNumber){};
+  rpc ComputeAverage(stream NumberStream) returns(NumberStream){};
 }

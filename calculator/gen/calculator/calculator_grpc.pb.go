@@ -20,6 +20,7 @@ const _ = grpc.SupportPackageIsVersion7
 type CalculatorClient interface {
 	Sum(ctx context.Context, in *SumRequest, opts ...grpc.CallOption) (*ResultResponse, error)
 	PrimeNumberDecomposition(ctx context.Context, in *NRequest, opts ...grpc.CallOption) (Calculator_PrimeNumberDecompositionClient, error)
+	ComputeAverage(ctx context.Context, opts ...grpc.CallOption) (Calculator_ComputeAverageClient, error)
 }
 
 type calculatorClient struct {
@@ -71,12 +72,47 @@ func (x *calculatorPrimeNumberDecompositionClient) Recv() (*DecomposedNumber, er
 	return m, nil
 }
 
+func (c *calculatorClient) ComputeAverage(ctx context.Context, opts ...grpc.CallOption) (Calculator_ComputeAverageClient, error) {
+	stream, err := c.cc.NewStream(ctx, &Calculator_ServiceDesc.Streams[1], "/calculator.Calculator/ComputeAverage", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &calculatorComputeAverageClient{stream}
+	return x, nil
+}
+
+type Calculator_ComputeAverageClient interface {
+	Send(*NumberStream) error
+	CloseAndRecv() (*NumberStream, error)
+	grpc.ClientStream
+}
+
+type calculatorComputeAverageClient struct {
+	grpc.ClientStream
+}
+
+func (x *calculatorComputeAverageClient) Send(m *NumberStream) error {
+	return x.ClientStream.SendMsg(m)
+}
+
+func (x *calculatorComputeAverageClient) CloseAndRecv() (*NumberStream, error) {
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	m := new(NumberStream)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 // CalculatorServer is the server API for Calculator service.
 // All implementations must embed UnimplementedCalculatorServer
 // for forward compatibility
 type CalculatorServer interface {
 	Sum(context.Context, *SumRequest) (*ResultResponse, error)
 	PrimeNumberDecomposition(*NRequest, Calculator_PrimeNumberDecompositionServer) error
+	ComputeAverage(Calculator_ComputeAverageServer) error
 	mustEmbedUnimplementedCalculatorServer()
 }
 
@@ -89,6 +125,9 @@ func (UnimplementedCalculatorServer) Sum(context.Context, *SumRequest) (*ResultR
 }
 func (UnimplementedCalculatorServer) PrimeNumberDecomposition(*NRequest, Calculator_PrimeNumberDecompositionServer) error {
 	return status.Errorf(codes.Unimplemented, "method PrimeNumberDecomposition not implemented")
+}
+func (UnimplementedCalculatorServer) ComputeAverage(Calculator_ComputeAverageServer) error {
+	return status.Errorf(codes.Unimplemented, "method ComputeAverage not implemented")
 }
 func (UnimplementedCalculatorServer) mustEmbedUnimplementedCalculatorServer() {}
 
@@ -142,6 +181,32 @@ func (x *calculatorPrimeNumberDecompositionServer) Send(m *DecomposedNumber) err
 	return x.ServerStream.SendMsg(m)
 }
 
+func _Calculator_ComputeAverage_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(CalculatorServer).ComputeAverage(&calculatorComputeAverageServer{stream})
+}
+
+type Calculator_ComputeAverageServer interface {
+	SendAndClose(*NumberStream) error
+	Recv() (*NumberStream, error)
+	grpc.ServerStream
+}
+
+type calculatorComputeAverageServer struct {
+	grpc.ServerStream
+}
+
+func (x *calculatorComputeAverageServer) SendAndClose(m *NumberStream) error {
+	return x.ServerStream.SendMsg(m)
+}
+
+func (x *calculatorComputeAverageServer) Recv() (*NumberStream, error) {
+	m := new(NumberStream)
+	if err := x.ServerStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 // Calculator_ServiceDesc is the grpc.ServiceDesc for Calculator service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -159,6 +224,11 @@ var Calculator_ServiceDesc = grpc.ServiceDesc{
 			StreamName:    "PrimeNumberDecomposition",
 			Handler:       _Calculator_PrimeNumberDecomposition_Handler,
 			ServerStreams: true,
+		},
+		{
+			StreamName:    "ComputeAverage",
+			Handler:       _Calculator_ComputeAverage_Handler,
+			ClientStreams: true,
 		},
 	},
 	Metadata: "calculator/protos/calculator/calculator",
