@@ -2,9 +2,12 @@ package main
 
 import (
 	"context"
+	"fmt"
 	pb "github.com/lucasszmt/grpcTraining/calculator/gen/calculator"
 	"github.com/lucasszmt/grpcTraining/calculator/server/utils"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"io"
 	"log"
 	"net"
@@ -15,6 +18,9 @@ type server struct {
 }
 
 func (s *server) Sum(ctx context.Context, in *pb.SumRequest) (*pb.ResultResponse, error) {
+	if in.Values.ValA < 0 {
+		return nil, status.Error(codes.InvalidArgument, fmt.Sprintf("Received an invalid argument %v", in.Values.ValA))
+	}
 	result := in.Values.ValA + in.Values.ValB
 	response := &pb.ResultResponse{Response: result}
 	return response, nil

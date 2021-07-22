@@ -4,6 +4,7 @@ import (
 	"context"
 	pb "github.com/lucasszmt/grpcTraining/calculator/gen/calculator"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/status"
 	"log"
 	"time"
 )
@@ -64,5 +65,11 @@ func main() {
 	}
 	defer conn.Close()
 	client := pb.NewCalculatorClient(conn)
-	FindMaximum(client, []int32{4, 5, 7, 8, 10, 44, 11, 7})
+	_, respErr := client.Sum(context.Background(), &pb.SumRequest{Values: &pb.Values{ValA: -1, ValB: 2}})
+	if respErr != nil {
+		s, _ := status.FromError(respErr)
+		log.Print("Message",s.Message())
+		log.Print("Code",s.Code())
+		log.Print("Details",s.Err())
+	}
 }
