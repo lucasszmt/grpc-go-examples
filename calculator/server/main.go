@@ -80,7 +80,6 @@ func (*server) FindMaximum(stream pb.Calculator_FindMaximumServer) error {
 }
 
 func main() {
-
 	lis, err := net.Listen("tcp", "0.0.0.0:50051")
 	if err != nil {
 		log.Fatal(err)
