@@ -4,6 +4,7 @@ import (
 	"context"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"log"
 	"time"
 )
@@ -25,9 +26,14 @@ func init() {
 	if conErr != nil {
 		log.Fatalln(conErr)
 	}
+	pingErr := MongoClient.Ping(ctx, readpref.Primary())
+	if pingErr != nil {
+		log.Fatalln(pingErr)
+	}
 }
 
 func Disconnect() error{
+	log.Println("Shutting down mongo connection")
 	err := MongoClient.Disconnect(context.Background())
 	if err != nil {
 		return err

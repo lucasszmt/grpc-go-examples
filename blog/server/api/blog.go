@@ -5,6 +5,7 @@ import (
 	"fmt"
 	pb "github.com/lucasszmt/grpcTraining/blog/gen/blog"
 	"github.com/lucasszmt/grpcTraining/blog/server/database"
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"google.golang.org/grpc/codes"
@@ -55,4 +56,30 @@ func (*Server) CreateBlog(ctx context.Context, in *pb.CreateBlogRequest) (*pb.Cr
 		Content:  blog.Content,
 	}
 	return &pb.CreateBlogResponse{Blog: blogResp}, nil
+}
+
+func (*Server) ReadBlog(ctx context.Context, in *pb.ReadBlogRequest) (*pb.ReadBlogResponse, error) {
+	log.Println("Reading blog...")
+	blogId := in.GetBlogId()
+	oid, err := primitive.ObjectIDFromHex(blogId)
+	if err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, fmt.Sprintf("Error parsing the object ID: %v", err))
+	}
+
+	data := &blogItem{}
+	filter := bson.M{"_id": oid}
+	res := db.Collection("blog").FindOne(ctx, filter)
+	if err := res.Decode(data); err != nil {
+		return nil, status.Errorf(codes.NotFound, fmt.Sprintf("Could not find the blog with the specified ID: %v", err))
+	}
+	return &pb.ReadBlogResponse{Blog: dataToBlogPb(data)}, nil
+}
+
+func dataToBlogPb(item *blogItem) *pb.Blog {
+	return &pb.Blog{
+		Id:       item.ID.Hex(),
+		AuthorId: item.AuthorId,
+		Title:    item.Title,
+		Content:  item.Content,
+	}
 }

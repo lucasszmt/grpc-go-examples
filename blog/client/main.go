@@ -15,10 +15,9 @@ func main() {
 	defer conn.Close()
 
 	client := pb.NewBlogServiceClient(conn)
-	resp, _ := client.CreateBlog(context.Background(), &pb.CreateBlogRequest{Blog: &pb.Blog{
-		AuthorId: "1",
-		Title:    "The Witcher",
-		Content:  "The white wolf returns",
-	}})
-	log.Println(resp)
+	res, err := client.ReadBlog(context.Background(), &pb.ReadBlogRequest{BlogId: "123455"})
+	if err != nil {
+		log.Println(err)
+	}
+	log.Println(res)
 }
