@@ -20,10 +20,10 @@ func init() {
 }
 
 type blogItem struct {
-	ID       primitive.ObjectID `bson:"_id,omitempty" json:"id,omitempty"`
-	AuthorId string             `json:"author_id,omitempty"`
-	Content  string             `json:"content,omitempty"`
-	Title    string             `json:"title,omitempty"`
+	ID       primitive.ObjectID `bson:"_id,omitempty"`
+	AuthorId string             `bson:"author_id,omitempty"`
+	Content  string             `bson:"content,omitempty"`
+	Title    string             `bson:"title,omitempty"`
 }
 
 type Server struct {
@@ -82,4 +82,49 @@ func dataToBlogPb(item *blogItem) *pb.Blog {
 		Title:    item.Title,
 		Content:  item.Content,
 	}
+}
+
+func (*Server) UpdateBlog(ctx context.Context, in *pb.UpdateBlogRequest) (*pb.UpdateBlogResponse, error) {
+	log.Println("Updating blog")
+	blogId := in.Blog.GetId()
+	oid, err := primitive.ObjectIDFromHex(blogId)
+	if err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, fmt.Sprintf("Error parsing the informed ID: %v", err))
+	}
+
+	data := &blogItem{}
+	filter := bson.M{"_id": oid}
+	blogItem := db.Collection("blog").FindOne(ctx, filter)
+	if err := blogItem.Decode(data); err != nil {
+		return nil, status.Errorf(codes.NotFound, fmt.Sprintf("Could not find the blog with the specified ID: %v", err))
+	}
+	blog := in.GetBlog()
+	data.Title = blog.Title
+	data.Content = blog.Content
+	data.AuthorId = blog.AuthorId
+
+	_, updtErr := db.Collection("blog").UpdateOne(context.Background(), filter, bson.M{"$set": data})
+	if updtErr != nil {
+		return nil, status.Errorf(codes.NotFound, fmt.Sprintf("Unable to update blog with the specified ID: %v", updtErr))
+	}
+
+	return &pb.UpdateBlogResponse{Blog: dataToBlogPb(data)}, nil
+}
+
+func (*Server) DeleteBlog(ctx context.Context, in *pb.DeleteBlogRequest) (*pb.DeleteBlogResponse, error) {
+	log.Println("Deleting Blog Item...")
+	oid, err := primitive.ObjectIDFromHex(in.Id)
+	if err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, fmt.Sprintf("Error parsing the informed ID: %v", err))
+	}
+
+	res, dErr := db.Collection("blog").DeleteOne(context.Background(), bson.D{{"_id", oid}})
+	if dErr != nil {
+		return nil, status.Errorf(codes.InvalidArgument, fmt.Sprintf("Error deleting the item: %v", dErr))
+	}
+	log.Println("Deleted: ", res.DeletedCount)
+	if res.DeletedCount == 0 {
+		return nil, status.Errorf(codes.NotFound, fmt.Sprintf("Item not found: %v", dErr))
+	}
+	return &pb.DeleteBlogResponse{Id: oid.Hex()}, nil
 }
